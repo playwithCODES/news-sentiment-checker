@@ -1,9 +1,9 @@
 import axios from "axios";
-// import cheerio from "cheerio"
 import * as cheerio from "cheerio";
 import PDFDocument from "pdfkit";
 import Analysis from "../models/Analysis.js";
-import { analyzeNews } from "../utils/sentimentService.js";
+// import { analyzeNews } from "../utils/sentimentService.js";
+import { analyzeWithGemini } from "../utils/geminiService.js";
 
 async function extractArticleFromUrl(url) {
   const response = await axios.get(url, {
@@ -45,19 +45,19 @@ const createAnalysis = async (req, res) => {
         .json({ message: "Headline and content are required" });
     }
 
-    const result = analyzeNews(headline, content);
+    const result = await analyzeWithGemini(headline, content);
 
     const analysis = await Analysis.create({
       userId: req.user.id,
       headline,
       content,
       sourceUrl: sourceUrl || "",
-      category: result.category,
+      category: result.category || "General",
       sentiment: result.sentiment,
       score: result.score,
       confidence: result.confidence,
-      positiveKeywords: result.positiveKeywords,
-      negativeKeywords: result.negativeKeywords,
+      positiveKeywords: result.positiveKeywords || [],
+      negativeKeywords: result.negativeKeywords || [],
       sourceType
     });
 
@@ -186,7 +186,32 @@ const exportPdf = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+export const deleteAnalysis = async (req, res) => {
+  try {
+    const analysis = await Analysis.findById(req.params.id);
 
+    if (!analysis) {
+      return res.status(404).json({ message: "Analysis not found" });
+    }
+
+    if (!analysis.userId) {
+      return res
+        .status(400)
+        .json({ message: "This analysis has no owner userId field in database" });
+    }
+
+    if (analysis.userId.toString() !== req.user.id) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    await analysis.deleteOne();
+
+    res.json({ message: "Analysis deleted successfully" });
+  } catch (error) {
+    console.log("DELETE ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 export {
   createAnalysis,
   getMyAnalyses,

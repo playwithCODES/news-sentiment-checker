@@ -10,7 +10,19 @@ const positiveWordList = [
 const negativeWordList = [
   "bad", "poor", "loss", "decline", "fraud",
   "crisis", "negative", "risk", "danger", "weak",
-  "corruption", "fail", "failure", "violence", "problem", "drop"
+  "corruption", "fail", "failure", "violence", "problem", "drop", "flood",
+  "flooding",
+  "disaster",
+  "death",
+  "damage",
+  "crisis",
+  "loss",
+  "risk",
+  "danger",
+  "displaced",
+  "critical",
+  "injury",
+  "destroyed"
 ];
 
 function extractKeywords(text, list) {

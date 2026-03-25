@@ -22,19 +22,38 @@ export default function Navbar() {
         </Link>
 
         <div className="flex flex-wrap gap-3">
-          <Link href="/dashboard" className="rounded-lg bg-slate-100 px-4 py-2 dark:bg-slate-800">
+          <Link
+            href="/dashboard"
+            className="rounded-lg bg-slate-100 px-4 py-2 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-white"
+          >
             Dashboard
           </Link>
 
-          <Link href="/profile" className="rounded-lg bg-slate-100 px-4 py-2 dark:bg-slate-800">
+          <Link
+            href="/history"
+            className="rounded-lg bg-slate-100 px-4 py-2 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-white"
+          >
+            History
+          </Link>
+
+          <Link
+            href="/profile"
+            className="rounded-lg bg-slate-100 px-4 py-2 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-white"
+          >
             Profile
           </Link>
 
-          <button onClick={toggleTheme} className="bg-slate-700 text-white hover:bg-slate-800">
+          <button
+            onClick={toggleTheme}
+            className="bg-slate-700 text-white hover:bg-slate-800"
+          >
             {darkMode ? "Light" : "Dark"} Mode
           </button>
 
-          <button onClick={handleLogout} className="bg-red-500 text-white hover:bg-red-600">
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white hover:bg-red-600"
+          >
             Logout
           </button>
         </div>

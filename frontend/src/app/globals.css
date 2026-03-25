@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --bg: #f1f5f9;
@@ -26,9 +24,15 @@ body {
 input,
 textarea,
 select {
-  @apply w-full rounded-lg border border-slate-300 p-3 outline-none focus:ring-2 focus:ring-blue-500;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5f5;
+  padding: 0.75rem;
+  outline: none;
 }
 
 button {
-  @apply rounded-lg px-4 py-2 font-medium transition;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
 }

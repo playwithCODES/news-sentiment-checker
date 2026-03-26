@@ -1,14 +1,12 @@
+import dotenv from "dotenv";
+dotenv.config({ path: "./.env" });
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import analysisRoutes from "./routes/analysisRoutes.js";
-
-dotenv.config({ path: "./.env" });
-
-console.log("JWT_SECRET =", process.env.JWT_SECRET);
 
 connectDB();
 
@@ -17,7 +15,7 @@ const app = express();
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
-    credentials: true
+    credentials: true,
   })
 );
 

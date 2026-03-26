@@ -12,7 +12,6 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@google/genai": "^1.46.0",
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
@@ -21,6 +20,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.1.1",
     "mongoose": "^9.3.2",
     "pdfkit": "^0.18.0",
     "sentiment": "^5.0.2"

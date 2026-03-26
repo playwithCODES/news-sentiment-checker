@@ -2,14 +2,13 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import PDFDocument from "pdfkit";
 import Analysis from "../models/Analysis.js";
-// import { analyzeNews } from "../utils/sentimentService.js";
 import { analyzeWithGemini } from "../utils/geminiService.js";
 
 async function extractArticleFromUrl(url) {
   const response = await axios.get(url, {
     headers: {
-      "User-Agent": "Mozilla/5.0"
-    }
+      "User-Agent": "Mozilla/5.0",
+    },
   });
 
   const $ = cheerio.load(response.data);
@@ -23,7 +22,7 @@ async function extractArticleFromUrl(url) {
 
   return {
     headline: title,
-    content: paragraphs.join(" ").slice(0, 5000)
+    content: paragraphs.join(" ").slice(0, 5000),
   };
 }
 
@@ -52,17 +51,19 @@ const createAnalysis = async (req, res) => {
       headline,
       content,
       sourceUrl: sourceUrl || "",
-      category: result.category || "General",
-      sentiment: result.sentiment,
-      score: result.score,
-      confidence: result.confidence,
+      category: result.category || "Other",
+      sentiment: result.sentiment || "neutral",
+      score: result.score ?? 0,
+      confidence: result.confidence ?? 0.5,
       positiveKeywords: result.positiveKeywords || [],
       negativeKeywords: result.negativeKeywords || [],
-      sourceType
+      summary: result.summary || "No summary available",
+      sourceType,
     });
 
     res.status(201).json(analysis);
   } catch (error) {
+    console.error("CREATE ANALYSIS ERROR:", error);
     res.status(500).json({ message: error.message || "Analysis failed" });
   }
 };
@@ -76,11 +77,11 @@ const getMyAnalyses = async (req, res) => {
     if (search) {
       query.$or = [
         { headline: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } }
+        { category: { $regex: search, $options: "i" } },
       ];
     }
 
-    if (sentiment) query.sentiment = sentiment;
+    if (sentiment) query.sentiment = sentiment.toLowerCase().trim();
     if (category) query.category = category;
 
     const analyses = await Analysis.find(query).sort({ createdAt: -1 });
@@ -95,16 +96,16 @@ const getStats = async (req, res) => {
     const analyses = await Analysis.find({ userId: req.user.id });
 
     const stats = {
-      Positive: analyses.filter((item) => item.sentiment === "Positive").length,
-      Negative: analyses.filter((item) => item.sentiment === "Negative").length,
-      Neutral: analyses.filter((item) => item.sentiment === "Neutral").length,
+      Positive: analyses.filter((item) => item.sentiment === "positive").length,
+      Negative: analyses.filter((item) => item.sentiment === "negative").length,
+      Neutral: analyses.filter((item) => item.sentiment === "neutral").length,
       total: analyses.length,
-      categories: {}
+      categories: {},
     };
 
     analyses.forEach((item) => {
-      stats.categories[item.category] =
-        (stats.categories[item.category] || 0) + 1;
+      const cat = item.category || "Other";
+      stats.categories[cat] = (stats.categories[cat] || 0) + 1;
     });
 
     res.status(200).json(stats);
@@ -116,7 +117,7 @@ const getStats = async (req, res) => {
 const exportCsv = async (req, res) => {
   try {
     const analyses = await Analysis.find({ userId: req.user.id }).sort({
-      createdAt: -1
+      createdAt: -1,
     });
 
     const headers = [
@@ -125,19 +126,25 @@ const exportCsv = async (req, res) => {
       "Sentiment",
       "Score",
       "Confidence",
+      "Positive Keywords",
+      "Negative Keywords",
+      "Summary",
       "Source URL",
-      "Created At"
+      "Created At",
     ];
 
     const rows = analyses.map((item) =>
       [
-        `"${item.headline.replace(/"/g, '""')}"`,
-        item.category,
-        item.sentiment,
-        item.score,
-        item.confidence,
-        item.sourceUrl,
-        item.createdAt.toISOString()
+        `"${String(item.headline || "").replace(/"/g, '""')}"`,
+        item.category || "",
+        item.sentiment || "",
+        item.score ?? "",
+        item.confidence ?? "",
+        `"${(item.positiveKeywords || []).join(" | ").replace(/"/g, '""')}"`,
+        `"${(item.negativeKeywords || []).join(" | ").replace(/"/g, '""')}"`,
+        `"${String(item.summary || "").replace(/"/g, '""')}"`,
+        item.sourceUrl || "",
+        item.createdAt.toISOString(),
       ].join(",")
     );
 
@@ -176,7 +183,10 @@ const exportPdf = async (req, res) => {
       doc.fontSize(12).text(`${index + 1}. ${item.headline}`);
       doc.text(`Sentiment: ${item.sentiment}`);
       doc.text(`Category: ${item.category}`);
-      doc.text(`Score: ${item.score} | Confidence: ${item.confidence}%`);
+      doc.text(`Score: ${item.score} | Confidence: ${item.confidence}`);
+      doc.text(`Positive Keywords: ${(item.positiveKeywords || []).join(", ") || "None"}`);
+      doc.text(`Negative Keywords: ${(item.negativeKeywords || []).join(", ") || "None"}`);
+      doc.text(`Summary: ${item.summary || "No summary available"}`);
       doc.text(`Date: ${new Date(item.createdAt).toLocaleString()}`);
       doc.moveDown();
     });
@@ -186,6 +196,7 @@ const exportPdf = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 export const deleteAnalysis = async (req, res) => {
   try {
     const analysis = await Analysis.findById(req.params.id);
@@ -195,9 +206,9 @@ export const deleteAnalysis = async (req, res) => {
     }
 
     if (!analysis.userId) {
-      return res
-        .status(400)
-        .json({ message: "This analysis has no owner userId field in database" });
+      return res.status(400).json({
+        message: "This analysis has no owner userId field in database",
+      });
     }
 
     if (analysis.userId.toString() !== req.user.id) {
@@ -212,10 +223,5 @@ export const deleteAnalysis = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-export {
-  createAnalysis,
-  getMyAnalyses,
-  getStats,
-  exportCsv,
-  exportPdf
-};
+
+export { createAnalysis, getMyAnalyses, getStats, exportCsv, exportPdf };

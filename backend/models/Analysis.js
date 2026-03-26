@@ -5,56 +5,74 @@ const analysisSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
     headline: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     content: {
       type: String,
-      required: true
+      required: true,
     },
     sourceUrl: {
       type: String,
-      default: ""
+      default: "",
     },
     category: {
       type: String,
-      default: "General"
+      enum: [
+        "Politics",
+        "Economy",
+        "Technology",
+        "Health",
+        "Environment",
+        "Sports",
+        "Business",
+        "Education",
+        "Crime",
+        "Entertainment",
+        "Other"
+      ],
+      default: "Other",
     },
     sentiment: {
       type: String,
-      enum: ["Positive", "Negative", "Neutral"],
-      required: true
+      enum: ["positive", "negative", "neutral"],
+      required: true,
     },
     score: {
       type: Number,
-      required: true
+      required: true,
+      default: 0,
     },
     confidence: {
       type: Number,
-      required: true
+      required: true,
+      default: 0.5,
     },
     positiveKeywords: {
       type: [String],
-      default: []
+      default: [],
     },
     negativeKeywords: {
       type: [String],
-      default: []
+      default: [],
+    },
+    summary: {
+      type: String,
+      default: "No summary available",
     },
     sourceType: {
       type: String,
       enum: ["manual", "url"],
-      default: "manual"
-    }
+      default: "manual",
+    },
   },
   { timestamps: true }
 );
 
-const model = mongoose.model("Analysis", analysisSchema);
-export default model;
+const Analysis = mongoose.model("Analysis", analysisSchema);
 
-
+export default Analysis;

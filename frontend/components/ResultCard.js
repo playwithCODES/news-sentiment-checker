@@ -42,7 +42,7 @@ export default function ResultCard({ result }) {
         </p>
 
         <p>
-          <span className="font-semibold">Confidence:</span> {result.confidence}%
+          <span className="font-semibold">Confidence:</span> {result.confidence}
         </p>
 
         <p>

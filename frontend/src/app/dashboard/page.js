@@ -109,7 +109,7 @@ export default function DashboardPage() {
           onExportPdf={() => downloadFile("pdf")}
         />
 
-        <HistoryTable analyses={analyses} />
+        <HistoryTable analyses={analyses} setAnalyses={setAnalyses}  fetchStats={fetchStats}  />
       </main>
     </div>
   );

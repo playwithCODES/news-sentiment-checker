@@ -2,18 +2,19 @@
 
 import api from "@/lib/api";
 
-export default function HistoryTable({ analyses, setAnalyses }) {
+export default function HistoryTable({ analyses, setAnalyses, fetchStats }) {
   const handleDelete = async (id) => {
-  const confirmDelete = confirm("Are you sure you want to delete this analysis?");
-  if (!confirmDelete) return;
+    const confirmDelete = confirm("Are you sure you want to delete this analysis?");
+    if (!confirmDelete) return;
 
-  try {
-    await api.delete(`/analysis/${id}`);
-    setAnalyses((prev) => prev.filter((item) => item._id !== id));
-  } catch (error) {
-    console.error(error);
-  }
-};
+    try {
+      await api.delete(`/analysis/${id}`);
+      setAnalyses((prev) => prev.filter((item) => item._id !== id));
+      if (fetchStats) fetchStats();
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <div className="card rounded-2xl p-6 shadow">
@@ -47,7 +48,7 @@ export default function HistoryTable({ analyses, setAnalyses }) {
                   <td className="p-3">{item.category}</td>
                   <td className="p-3">{item.sentiment}</td>
                   <td className="p-3">{item.score}</td>
-                  <td className="p-3">{item.confidence}%</td>
+                  <td className="p-3">{(item.confidence * 100).toFixed(0)}%</td>
                   <td className="p-3">{item.sourceType}</td>
                   <td className="p-3">
                     {new Date(item.createdAt).toLocaleString()}

@@ -1,3 +1,4 @@
+// pages/login.js
 "use client";
 
 import { useState } from "react";
@@ -11,7 +12,7 @@ export default function LoginPage() {
 
   const [form, setForm] = useState({
     email: "",
-    password: ""
+    password: "",
   });
 
   const [error, setError] = useState("");
@@ -34,37 +35,61 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <form onSubmit={handleSubmit} className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-        <h1 className="mb-6 text-2xl font-bold">Login</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
+        <h1 className="text-3xl font-semibold text-center mb-8">Login</h1>
 
-        {error && <p className="mb-4 rounded bg-red-100 p-3 text-red-600">{error}</p>}
+        {error && (
+          <p className="mb-4 text-center text-red-600 bg-red-100 p-3 rounded-lg">
+            {error}
+          </p>
+        )}
 
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          onChange={handleChange}
-          className="mb-4"
-        />
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              onChange={handleChange}
+              className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
 
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          onChange={handleChange}
-          className="mb-4"
-        />
+          <div className="mb-6">
+            <input
+              name="password"
+              type="password"
+              placeholder="Password"
+              onChange={handleChange}
+              className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
 
-        <button className="w-full bg-blue-600 text-white hover:bg-blue-700">Login</button>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Login
+          </button>
+        </form>
 
-        <p className="mt-4 text-sm text-slate-600">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-blue-600">
+        <p className="mt-4 text-center text-sm text-gray-600">
+          Don't have an account?{" "}
+          <Link href="/register" className="text-blue-600 hover:underline">
             Register
           </Link>
         </p>
-      </form>
-    </main>
+
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Forgot your password?{" "}
+          <Link href="/forgot-password" className="text-blue-600 hover:underline">
+            Reset it here
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }

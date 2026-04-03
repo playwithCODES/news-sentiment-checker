@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
 import User from "../models/User.js";
 import { Resend } from "resend";
 import dotenv from 'dotenv';
@@ -118,45 +119,82 @@ const getProfile = async (req, res) => {
 };
 
 // Forgot Password: Send email with reset link using Resend
-const forgotPassword = async (req, res) => {
+
+ const forgotPassword = async (req, res) => {
+
   const { email } = req.body;
 
   try {
+
     const user = await User.findOne({ email });
+
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
-    // Generate reset token
+    // generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetPasswordExpires = Date.now() + 3600000; // 1 hour
 
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = resetPasswordExpires;
+
+    user.resetPasswordExpires =
+      Date.now() + 60 * 60 * 1000; // 1 hour
+
     await user.save();
 
-    // Create the reset URL
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    // reset link
+    const resetUrl =
+      `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
+    // nodemailer transporter
+    const transporter = nodemailer.createTransport({
 
+      service: "gmail",
 
-    // Send the reset password email using Resend
-    const emailResponse = await resendClient.emails.send({
-    
-      from: "onboarding@resend.dev",
-      to: user.email,
-      subject: "Password Reset Request",
-      html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to reset your password.</p> `,
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+
     });
 
-    console.log("Email sent response:", emailResponse);  
+    // send mail
+    await transporter.sendMail({
 
-    res.status(200).json({ message: "Password reset email sent successfully" });
+      from: process.env.GMAIL_USER,
+
+      to: user.email,
+
+      subject: "Password Reset Request",
+
+      html: `
+        <h2>Password Reset</h2>
+        <p>Click link below to reset password:</p>
+        <a href="${resetUrl}">
+          Reset Password
+        </a>
+      `,
+
+    });
+
+    res.status(200).json({
+      message: "Reset link sent to your email",
+    });
+
   } catch (error) {
-    console.error("Error sending email:", error); 
-    res.status(500).json({ message: "Error sending password reset email", error });
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+
   }
+
 };
+
 // Reset Password: Set new password after verifying token
 const resetPassword = async (req, res) => {
   const { resetToken, newPassword } = req.body;

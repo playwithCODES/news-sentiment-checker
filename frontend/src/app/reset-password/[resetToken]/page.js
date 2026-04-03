@@ -1,25 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Import for routing
-import { useParams } from "next/navigation"; // Use for dynamic URL params
+import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 export default function ResetPassword() {
-  const { resetToken } = useParams(); // Correct way to get dynamic route params
 
-  const [newPassword, setNewPassword] = useState(""); // State for new password
-  const [confirmPassword, setConfirmPassword] = useState(""); // State for confirming password
-  const [message, setMessage] = useState(""); // State for success message
-  const [error, setError] = useState(""); // State for error message
+  const router = useRouter(); // ✅ THIS WAS MISSING
 
-  // If no reset token is found
+  const { resetToken } = useParams();
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
   useEffect(() => {
     if (!resetToken) {
       setError("Invalid or expired reset token");
     }
   }, [resetToken]);
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -29,25 +30,33 @@ export default function ResetPassword() {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resetToken, // Include reset token in request
-          newPassword,
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/auth/reset-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            resetToken,
+            newPassword,
+          }),
+        }
+      );
 
-      const data = await response.json(); // Get the response data
+      const data = await response.json();
 
       if (response.ok) {
-        setMessage(data.message); // Display success message
-        setTimeout(() => router.push("/login"), 2000); // Redirect to login after success
+        setMessage(data.message);
+
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+
       } else {
-        setError(data.message); // Display error message
+        setError(data.message);
       }
+
     } catch (err) {
       setError("Something went wrong, please try again.");
     }
@@ -55,11 +64,18 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-        <h1 className="mb-6 text-2xl font-bold text-center">Reset Password</h1>
-        <p className="mb-4 text-center">Enter your new password below.</p>
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg"
+      >
+        <h1 className="mb-6 text-2xl font-bold text-center">
+          Reset Password
+        </h1>
 
-        {/* New Password input */}
+        <p className="mb-4 text-center">
+          Enter your new password below.
+        </p>
+
         <input
           type="password"
           placeholder="New Password"
@@ -69,24 +85,35 @@ export default function ResetPassword() {
           required
         />
 
-        {/* Confirm Password input */}
         <input
           type="password"
           placeholder="Confirm Password"
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(e) =>
+            setConfirmPassword(e.target.value)
+          }
           className="w-full p-3 mb-4 border border-gray-300 rounded-lg"
           required
         />
 
-        {/* Submit Button */}
-        <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+        >
           Reset Password
         </button>
 
-        {/* Success or Error Message */}
-        {message && <p className="mt-4 text-green-500 text-center">{message}</p>}
-        {error && <p className="mt-4 text-red-500 text-center">{error}</p>}
+        {message && (
+          <p className="mt-4 text-green-500 text-center">
+            {message}
+          </p>
+        )}
+
+        {error && (
+          <p className="mt-4 text-red-500 text-center">
+            {error}
+          </p>
+        )}
       </form>
     </div>
   );

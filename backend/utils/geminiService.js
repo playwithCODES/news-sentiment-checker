@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export const analyzeWithGemini = async (headline, content) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -22,7 +21,7 @@ Format:
   "category": "Politics|Economy|Technology|Health|Environment|Sports|Business|Education|Crime|Entertainment|Other",
   "positiveKeywords": ["word1", "word2"],
   "negativeKeywords": ["word1", "word2"],
-  "summary": "short summary"
+  "summary": "short summary in bullet points"
 }
 
 Rules:
@@ -34,7 +33,7 @@ Rules:
 - confidence must be between 0 and 1
 - category must be exactly one from the list above
 - positiveKeywords and negativeKeywords should contain 0 to 5 short keywords or short phrases
-- summary must be short
+- summary must be short and in bullet points
 
 Headline: ${headline}
 Content: ${content}
@@ -57,6 +56,8 @@ Content: ${content}
       }
       parsed = JSON.parse(jsonMatch[0]);
     }
+
+    console.log("Parsed Gemini Response:", parsed);
 
     const cleanSentiment = String(parsed.sentiment || "").toLowerCase().trim();
 
@@ -88,6 +89,13 @@ Content: ${content}
       ? cleanCategory
       : "Other";
 
+    // Clean up the summary
+    const summary = typeof parsed.summary === "string" && parsed.summary.trim()
+      ? parsed.summary.trim().split('\n').map(line => `- ${line.trim().replace(/^-\s?/, '')}`).join('\n')
+      : "No summary available";
+
+    console.log("Summary in parsed response:", summary);
+
     return {
       sentiment: ["positive", "negative", "neutral"].includes(cleanSentiment)
         ? cleanSentiment
@@ -107,10 +115,7 @@ Content: ${content}
             .filter(Boolean)
             .slice(0, 5)
         : [],
-      summary:
-        typeof parsed.summary === "string" && parsed.summary.trim()
-          ? parsed.summary.trim()
-          : "No summary available"
+      summary: parsed.summary || "No summary available"
     };
   } catch (error) {
     console.error("Gemini Error FULL:", error);

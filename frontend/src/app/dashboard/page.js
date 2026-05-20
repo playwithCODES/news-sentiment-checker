@@ -17,24 +17,32 @@ export default function DashboardPage() {
 
   const [latestResult, setLatestResult] = useState(null);
   const [analyses, setAnalyses] = useState([]);
+
   const [stats, setStats] = useState({
     Positive: 0,
     Negative: 0,
     Neutral: 0,
-    total: 0
+    total: 0,
   });
 
   const [filters, setFilters] = useState({
     search: "",
     sentiment: "",
-    category: ""
+    category: "",
   });
 
   const fetchAnalyses = async () => {
     try {
       const params = new URLSearchParams(filters).toString();
+
       const { data } = await api.get(`/analysis?${params}`);
+
       setAnalyses(data);
+
+      // This line fixes Latest Result not showing after refresh
+      if (data && data.length > 0) {
+        setLatestResult(data[0]);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -54,11 +62,15 @@ export default function DashboardPage() {
       router.push("/login");
       return;
     }
+
     fetchStats();
+    fetchAnalyses();
   }, [router]);
 
   useEffect(() => {
-    if (isLoggedIn()) fetchAnalyses();
+    if (isLoggedIn()) {
+      fetchAnalyses();
+    }
   }, [filters]);
 
   const handleSuccess = (result) => {
@@ -70,16 +82,19 @@ export default function DashboardPage() {
   const downloadFile = async (type) => {
     try {
       const response = await api.get(`/analysis/export/${type}`, {
-        responseType: "blob"
+        responseType: "blob",
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
+
       const link = document.createElement("a");
       link.href = url;
+
       link.setAttribute(
         "download",
         type === "csv" ? "analysis-history.csv" : "analysis-report.pdf"
       );
+
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -109,7 +124,11 @@ export default function DashboardPage() {
           onExportPdf={() => downloadFile("pdf")}
         />
 
-        <HistoryTable analyses={analyses} setAnalyses={setAnalyses}  fetchStats={fetchStats}  />
+        <HistoryTable
+          analyses={analyses}
+          setAnalyses={setAnalyses}
+          fetchStats={fetchStats}
+        />
       </main>
     </div>
   );

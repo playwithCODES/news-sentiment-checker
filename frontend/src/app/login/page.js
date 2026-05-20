@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
-
+import Spinner
+ from "../Components/Spinner";
 export default function LoginPage() {
   const router = useRouter();
 
@@ -16,6 +17,7 @@ export default function LoginPage() {
   });
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -23,21 +25,30 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setError("");
 
     try {
+      setLoading(true);
+
       const { data } = await api.post("/auth/login", form);
+
       saveAuth(data);
+
       router.push("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
-        <h1 className="text-3xl font-semibold text-center mb-8">Login</h1>
+        <h1 className="text-3xl font-semibold text-center mb-8">
+          Login
+        </h1>
 
         {error && (
           <p className="mb-4 text-center text-red-600 bg-red-100 p-3 rounded-lg">
@@ -51,8 +62,10 @@ export default function LoginPage() {
               name="email"
               type="email"
               placeholder="Email"
+              value={form.email}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading}
+              className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -62,17 +75,27 @@ export default function LoginPage() {
               name="password"
               type="password"
               placeholder="Password"
+              value={form.password}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading}
+              className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed"
           >
-            Login
+            {loading ? (
+              <>
+                <Spinner className="h-5 w-5 text-white fill-blue-300" />
+                Logging in...
+              </>
+            ) : (
+              "Login"
+            )}
           </button>
         </form>
 
@@ -85,7 +108,10 @@ export default function LoginPage() {
 
         <p className="mt-2 text-center text-sm text-gray-600">
           Forgot your password?{" "}
-          <Link href="/forgot-password" className="text-blue-600 hover:underline">
+          <Link
+            href="/forgot-password"
+            className="text-blue-600 hover:underline"
+          >
             Reset it here
           </Link>
         </p>

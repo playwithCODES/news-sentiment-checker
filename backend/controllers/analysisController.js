@@ -5,7 +5,7 @@ import Analysis from "../models/Analysis.js";
 import { analyzeWithGemini } from "../utils/geminiService.js";
 import { analyzeNews } from "../utils/sentimentservice.js";
 
-// Extract article headline and content from URL
+// For extracting article headline and content from URL
 async function extractArticleFromUrl(url) {
   try {
     if (!url) {
@@ -189,7 +189,7 @@ const createAnalysis = async (req, res) => {
   }
 };
 
-// Get logged-in user's analyses
+// logged-in user bata  analyses 
 const getMyAnalyses = async (req, res) => {
   try {
     const { search = "", sentiment = "", category = "" } = req.query;

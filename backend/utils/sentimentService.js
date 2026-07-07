@@ -55,6 +55,8 @@ const negativeWordList = [
   "war",
   "accident",
   "protest",
+  "heavy rainfall",
+  "landslide",
 ];
 
 function extractKeywords(text, list) {

@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import PDFDocument from "pdfkit";
 import Analysis from "../models/Analysis.js";
 import { analyzeWithGemini } from "../utils/geminiService.js";
-import { analyzeNews } from "../utils/sentimentservice.js";
+import { analyzeNews } from "../utils/sentimentService.js";
 
 // For extracting article headline and content from URL
 async function extractArticleFromUrl(url) {

@@ -17,7 +17,7 @@ const generateToken = (user) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "7d" },
   );
 };
 
@@ -151,6 +151,7 @@ const forgotPassword = async (req, res) => {
       host: "smtp.gmail.com",
       port: 587,
       secure: false,
+      family: 4,
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
@@ -228,10 +229,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-export {
-  registerUser,
-  loginUser,
-  getProfile,
-  forgotPassword,
-  resetPassword,
-};
+export { registerUser, loginUser, getProfile, forgotPassword, resetPassword };

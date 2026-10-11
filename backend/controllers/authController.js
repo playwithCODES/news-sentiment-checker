@@ -204,7 +204,7 @@ const forgotPassword = async (req, res) => {
     console.log("Resend test email accepted:", data?.id);
 
     return res.status(200).json({
-      message: "Resend test email accepted successfully",
+      message: "Email sent successfully",
     });
   } catch (error) {
     console.error("Forgot password error:", error.message);

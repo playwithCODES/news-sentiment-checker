@@ -1,15 +1,13 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
 import User from "../models/User.js";
 import dotenv from "dotenv";
 import crypto from "crypto";
-import dns from "node:dns";
+import { Resend } from "resend";
 
 dotenv.config();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Prefer IPv4 for outbound SMTP connections
-dns.setDefaultResultOrder("ipv4first");
 
 // Generate JWT Token
 const generateToken = (user) => {
@@ -161,9 +159,7 @@ const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    user = await User.findOne({
-      email: normalizedEmail,
-    });
+    user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({
@@ -171,7 +167,6 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate a secure, random reset token
     resetToken = crypto.randomBytes(32).toString("hex");
 
     user.resetPasswordToken = resetToken;
@@ -181,87 +176,46 @@ const forgotPassword = async (req, res) => {
 
     const clientUrl = process.env.CLIENT_URL;
 
-    if (!clientUrl) {
-      throw new Error("CLIENT_URL is missing from environment variables");
-    }
-
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-      throw new Error("Gmail SMTP environment variables are missing");
+    if (!clientUrl || !process.env.RESEND_API_KEY) {
+      throw new Error("CLIENT_URL or RESEND_API_KEY is missing");
     }
 
     const resetUrl =
       `${clientUrl.replace(/\/$/, "")}/reset-password/${resetToken}`;
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      family: 4,
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-    });
-
-    // Verify SMTP connection and authentication
-    await transporter.verify();
-
-    console.log("SMTP connection verified successfully");
-
-    // Send password reset email
-    await transporter.sendMail({
-      from: `"News Sentiment Checker" <${process.env.GMAIL_USER}>`,
-      to: normalizedEmail,
-      subject: "Password Reset Request",
-      text: `Reset your password using this link: ${resetUrl}. This link expires in one hour.`,
+    const { data, error } = await resend.emails.send({
+      from: "News Sentiment Checker <noreply@omprakashrajbanshi.com.np>",
+      to: [normalizedEmail],
+      subject: "Password Reset Request - Test",
+      text: `Test email. Password reset link: ${resetUrl}`,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-          <h2>Password Reset</h2>
-          <p>We received a request to reset your password.</p>
-          <p>
-            <a href="${resetUrl}"
-               style="display:inline-block;padding:12px 20px;
-               background:#2563eb;color:#ffffff;text-decoration:none;
-               border-radius:6px;">
-              Reset Password
-            </a>
-          </p>
-          <p>If the button does not work, copy this link into your browser:</p>
-          <p>${resetUrl}</p>
-          <p>This link expires in one hour.</p>
-          <p>If you did not request a password reset, you can ignore this email.</p>
+          <h2>Password Reset Email Test</h2>
+          <p>This is a test of your Resend integration.</p>
+          <p><a href="${resetUrl}">Reset Password</a></p>
         </div>
       `,
     });
 
-    console.log("Password reset email sent successfully");
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    console.log("Resend test email accepted:", data?.id);
 
     return res.status(200).json({
-      message: "Reset link sent to your email",
+      message: "Resend test email accepted successfully",
     });
   } catch (error) {
-    // Log diagnostic details on the server, never credentials or reset tokens
-    console.error("Forgot password error:", {
-      message: error.message,
-      code: error.code,
-      command: error.command,
-      responseCode: error.responseCode,
-    });
+    console.error("Forgot password error:", error.message);
 
-    // Remove the unused token if email delivery failed
     if (user && resetToken) {
       try {
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
         await user.save();
       } catch (cleanupError) {
-        console.error(
-          "Failed to clear reset token:",
-          cleanupError.message,
-        );
+        console.error("Failed to clear reset token:", cleanupError.message);
       }
     }
 

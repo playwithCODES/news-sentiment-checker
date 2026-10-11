@@ -190,8 +190,8 @@ const forgotPassword = async (req, res) => {
       text: `Test email. Password reset link: ${resetUrl}`,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-          <h2>Password Reset Email Test</h2>
-          <p>This is a test of your Resend integration.</p>
+          <h2>Password Reset Email</h2>
+          <p>Kindly click the reset password button below.</p>
           <p><a href="${resetUrl}">Reset Password</a></p>
         </div>
       `,

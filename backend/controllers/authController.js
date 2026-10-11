@@ -4,8 +4,12 @@ import nodemailer from "nodemailer";
 import User from "../models/User.js";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import dns from "node:dns";
 
 dotenv.config();
+
+// Prefer IPv4 for outbound SMTP connections
+dns.setDefaultResultOrder("ipv4first");
 
 // Generate JWT Token
 const generateToken = (user) => {
@@ -27,7 +31,9 @@ const registerUser = async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({
+        message: "All fields are required",
+      });
     }
 
     if (password.length < 6) {
@@ -39,7 +45,9 @@ const registerUser = async (req, res) => {
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({
+        message: "User already exists",
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -51,7 +59,7 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered successfully",
       token: generateToken(user),
       user: {
@@ -62,7 +70,11 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Register error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to register user",
+    });
   }
 };
 
@@ -80,16 +92,20 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Login successful",
       token: generateToken(user),
       user: {
@@ -100,7 +116,11 @@ const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Login error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to log in",
+    });
   }
 };
 
@@ -110,27 +130,40 @@ const getProfile = async (req, res) => {
     const user = await User.findById(req.user.id).select("-password");
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
-    res.status(200).json(user);
+    return res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Get profile error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to retrieve profile",
+    });
   }
 };
 
 // Forgot Password
 const forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  let user = null;
+  let resetToken = null;
 
   try {
-    if (!email) {
+    const { email } = req.body;
+
+    if (!email || typeof email !== "string") {
       return res.status(400).json({
-        message: "Email is required",
+        message: "A valid email is required",
       });
     }
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+
+    user = await User.findOne({
+      email: normalizedEmail,
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -138,55 +171,111 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    // Generate a secure, random reset token
+    resetToken = crypto.randomBytes(32).toString("hex");
 
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
 
     await user.save();
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const clientUrl = process.env.CLIENT_URL;
+
+    if (!clientUrl) {
+      throw new Error("CLIENT_URL is missing from environment variables");
+    }
+
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      throw new Error("Gmail SMTP environment variables are missing");
+    }
+
+    const resetUrl =
+      `${clientUrl.replace(/\/$/, "")}/reset-password/${resetToken}`;
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 587,
       secure: false,
       family: 4,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
       },
     });
 
+    // Verify SMTP connection and authentication
+    await transporter.verify();
+
+    console.log("SMTP connection verified successfully");
+
+    // Send password reset email
     await transporter.sendMail({
       from: `"News Sentiment Checker" <${process.env.GMAIL_USER}>`,
-      to: user.email,
+      to: normalizedEmail,
       subject: "Password Reset Request",
+      text: `Reset your password using this link: ${resetUrl}. This link expires in one hour.`,
       html: `
-        <h2>Password Reset</h2>
-        <p>Click the link below to reset your password:</p>
-        <a href="${resetUrl}" target="_blank">Reset Password</a>
-        <p>This link will expire in 1 hour.</p>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>Password Reset</h2>
+          <p>We received a request to reset your password.</p>
+          <p>
+            <a href="${resetUrl}"
+               style="display:inline-block;padding:12px 20px;
+               background:#2563eb;color:#ffffff;text-decoration:none;
+               border-radius:6px;">
+              Reset Password
+            </a>
+          </p>
+          <p>If the button does not work, copy this link into your browser:</p>
+          <p>${resetUrl}</p>
+          <p>This link expires in one hour.</p>
+          <p>If you did not request a password reset, you can ignore this email.</p>
+        </div>
       `,
     });
 
-    res.status(200).json({
+    console.log("Password reset email sent successfully");
+
+    return res.status(200).json({
       message: "Reset link sent to your email",
     });
   } catch (error) {
-    console.log(error);
+    // Log diagnostic details on the server, never credentials or reset tokens
+    console.error("Forgot password error:", {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      responseCode: error.responseCode,
+    });
 
-    res.status(500).json({
-      message: "Server error",
+    // Remove the unused token if email delivery failed
+    if (user && resetToken) {
+      try {
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+      } catch (cleanupError) {
+        console.error(
+          "Failed to clear reset token:",
+          cleanupError.message,
+        );
+      }
+    }
+
+    return res.status(500).json({
+      message: "Unable to send the password reset email. Please try again later.",
     });
   }
 };
 
 // Reset Password
 const resetPassword = async (req, res) => {
-  const { resetToken, newPassword } = req.body;
-
   try {
+    const { resetToken, newPassword } = req.body;
+
     if (!resetToken || !newPassword) {
       return res.status(400).json({
         message: "Token and new password are required",
@@ -213,20 +302,28 @@ const resetPassword = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
 
+    // Invalidate the token after successful password reset
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Password reset successfully",
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Error resetting password",
-      error: error.message,
+    console.error("Reset password error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to reset password",
     });
   }
 };
 
-export { registerUser, loginUser, getProfile, forgotPassword, resetPassword };
+export {
+  registerUser,
+  loginUser,
+  getProfile,
+  forgotPassword,
+  resetPassword,
+};
